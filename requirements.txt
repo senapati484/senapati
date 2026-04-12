@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+"""
+Senapati - Requirements
+Zero brew dependencies - pure pip only
+"""
+
+# =====================
+# Core (required)
+# =====================
+
+# LLM Runtime
+mlx-lm                      # Apple Silicon GPU (auto-fallback: llama-cpp-python on Linux)
+faster-whisper             # Speech-to-text
+
+# Voice
+openwakeword               # Wake word detection
+piper-tts                  # Text-to-speech
+
+# UI & System
+textual                    # Terminal UI
+watchdog                   # File system watching
+psutil                     # System stats
+rumps                      # macOS menu bar
+
+# =====================
+# Storage
+# =====================
+sqlite-vec                  # Vector search (SQLite extension)
+
+# =====================
+# Vision/OCR (platform-specific)
+# =====================
+Pillow                      # Screenshots
+pytesseract                 # OCR fallback
+ocrmac                      # macOS OCR (Apple Vision, built-in)
+easyocr                     # Linux OCR (PyTorch-based)
+
+# =====================
+# Notifications (platform-specific)
+# =====================
+macos-notifications         # macOS (pure Python)
+notify-py                   # Linux
+
+# =====================
+# Audio (Linux only)
+# =====================
+sounddevice                 # Linux audio playback
+soundfile                   # Linux audio file handling
+
+# =====================
+# Calendar
+# =====================
+vobject                    # Read .ics files
+
+# =====================
+# Plugins (optional)
+# =====================
+python-telegram-bot        # Telegram
+spotipy                    # Spotify
+PyGithub                   # GitHub
+
+# =====================
+# Development
+# =====================
+pytest
+pytest-asyncio
