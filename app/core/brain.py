@@ -6,8 +6,8 @@ from typing import Optional, Dict, Any, List
 logger = logging.getLogger(__name__)
 
 SENAPATI_HOME = os.path.expanduser("~/.senapati")
-MODEL_PATH = os.path.join(SENAPATI_HOME, "models/qwen3-2.5b-mlx")
-DRAFT_MODEL_PATH = os.path.join(SENAPATI_HOME, "models/qwen3-0.5b-mlx")
+MODEL_PATH = os.path.join(SENAPATI_HOME, "models/qwen3-1.7b-mlx")
+DRAFT_MODEL_PATH = os.path.join(SENAPATI_HOME, "models/qwen3-0.6b-mlx")
 
 _model = None
 _tokenizer = None

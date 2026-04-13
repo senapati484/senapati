@@ -9,8 +9,8 @@ set -euo pipefail
 # ── Constants ────────────────────────────────────────────────
 SENAPATI_HOME="$HOME/.senapati"
 SENAPATI_REPO="https://github.com/your-username/senapati"
-MODEL_MAIN="mlx-community/Qwen3-2.5B-4bit"
-MODEL_DRAFT="mlx-community/Qwen3-0.5B-4bit"
+MODEL_MAIN="mlx-community/Qwen3-1.7B-4bit"
+MODEL_DRAFT="mlx-community/Qwen3-0.6B-4bit"
 MODEL_EMBED="mlx-community/nomic-embed-text-v1.5"
 PIPER_VOICE_BASE="https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/high"
 PIPER_VOICE_FILE="en_US-lessac-high"
@@ -195,25 +195,25 @@ hdr "Step 5 — Downloading AI models (this is the big download ~3GB)"
 info "Models go to $SENAPATI_HOME/models/ — only happens once"
 echo ""
 
-info "Downloading Qwen3-2.5B main model..."
+info "Downloading Qwen3-1.7B main model..."
 python3 - << 'PYEOF'
 from huggingface_hub import snapshot_download
 import os
 snapshot_download(
-    repo_id="mlx-community/Qwen3-2.5B-4bit",
-    local_dir=os.path.expanduser("~/.senapati/models/qwen3-2.5b-mlx"),
+    repo_id="mlx-community/Qwen3-1.7B-4bit",
+    local_dir=os.path.expanduser("~/.senapati/models/qwen3-1.7b-mlx"),
     ignore_patterns=["*.md", "*.txt"]
 )
 print("✓ Main model downloaded")
 PYEOF
 
-info "Downloading Qwen3-0.5B draft model..."
+info "Downloading Qwen3-0.6B draft model..."
 python3 - << 'PYEOF'
 from huggingface_hub import snapshot_download
 import os
 snapshot_download(
-    repo_id="mlx-community/Qwen3-0.5B-4bit",
-    local_dir=os.path.expanduser("~/.senapati/models/qwen3-0.5b-mlx"),
+    repo_id="mlx-community/Qwen3-0.6B-4bit",
+    local_dir=os.path.expanduser("~/.senapati/models/qwen3-0.6b-mlx"),
     ignore_patterns=["*.md", "*.txt"]
 )
 print("✓ Draft model downloaded")
@@ -363,8 +363,8 @@ cat > "$SENAPATI_HOME/config.json" << 'CONFJSON'
   "wake_words": ["hey senapati", "hey buddy", "senapati"],
   "wake_sensitivity": 0.72,
   "model": {
-    "main": "qwen3-2.5b-mlx",
-    "draft": "qwen3-0.5b-mlx",
+    "main": "qwen3-1.7b-mlx",
+    "draft": "qwen3-0.6b-mlx",
     "embed": "nomic-embed-mlx",
     "runtime": "mlx",
     "max_tokens": 300,
