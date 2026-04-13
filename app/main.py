@@ -58,33 +58,73 @@ def check_models(config: dict) -> bool:
     return True
 
 
+def _is_already_running() -> bool:
+    """Check if a Senapati instance is already running using a PID file."""
+    lock_file = SENAPATI_HOME / ".senapati.lock"
+    lock_file.parent.mkdir(parents=True, exist_ok=True)
+
+    # Check if lock file exists and if that PID is still running
+    if lock_file.exists():
+        try:
+            pid_str = lock_file.read_text().strip()
+            if pid_str:
+                pid = int(pid_str)
+                # Check if process is running using os.kill with signal 0
+                # This raises OSError if process doesn't exist or we don't have permission
+                import signal
+                os.kill(pid, 0)
+                # Process exists - check if it's actually a senapati process
+                try:
+                    proc_path = f"/proc/{pid}" if os.path.exists("/proc") else None
+                    if proc_path:
+                        with open(f"{proc_path}/cmdline", "r") as f:
+                            cmdline = f.read()
+                            if "senapati" in cmdline or "main.py" in cmdline:
+                                log.warning(f"Another Senapati instance is running (PID: {pid})")
+                                return True
+                    else:
+                        # On macOS, use ps to check
+                        import subprocess
+                        result = subprocess.run(
+                            ["ps", "-p", str(pid), "-o", "command="],
+                            capture_output=True, text=True
+                        )
+                        if "senapati" in result.stdout or "main.py" in result.stdout:
+                            log.warning(f"Another Senapati instance is running (PID: {pid})")
+                            return True
+                except (PermissionError, ProcessLookupError):
+                    pass
+        except (ValueError, ProcessLookupError, PermissionError, OSError):
+            # Stale lock file - process died or we don't have permission
+            pass
+
+    # Write our PID
+    lock_file.write_text(str(os.getpid()))
+    return False
+
+
 def run_daemon(config: dict):
-    """Background daemon — wake word always listening."""
+    """Background daemon — wake word always listening.
+
+    On macOS, rumps MUST run on the main thread (AppKit requirement).
+    All other work runs in background daemon threads.
+    """
+    import threading
     log.info("Starting Senapati daemon...")
 
     IS_MACOS = platform.system() == "Darwin"
-    agent_state = {"state": "idle", "muted": False, "trusted_mode": False}
 
-    # Start menu bar on macOS (separate thread)
-    if IS_MACOS:
-        try:
-            from bridges.menubar import run_menubar
-            import threading
-            mb_thread = threading.Thread(
-                target=run_menubar,
-                args=(agent_state,),
-                daemon=True,
-                name="menubar"
-            )
-            mb_thread.start()
-            log.info("Menu bar started")
-        except ImportError as e:
-            log.warning(f"Menu bar unavailable: {e}")
+    # Single shared state object for agent <-> menubar communication
+    from core.agent import _shared_state
+    _shared_state["state"] = "starting"
+    _shared_state["muted"] = False
+    _shared_state["trusted_mode"] = False
+
+    # ── Start all background workers in threads ──────────────────────────────
 
     # Start document indexer in background
     try:
         from bridges.doc_indexer import start_indexer
-        import threading
         idx_thread = threading.Thread(target=start_indexer, daemon=True, name="indexer")
         idx_thread.start()
         log.info("Document indexer started")
@@ -95,7 +135,6 @@ def run_daemon(config: dict):
     if IS_MACOS:
         try:
             from bridges.notif_bridge import start_notification_watcher
-            import threading
             notif_thread = threading.Thread(
                 target=start_notification_watcher,
                 daemon=True,
@@ -106,15 +145,31 @@ def run_daemon(config: dict):
         except ImportError as e:
             log.warning(f"Notification bridge unavailable: {e}")
 
-    # Start the main agent loop
-    try:
-        from core.agent import Agent
-        agent = Agent(str(SENAPATI_HOME / "config.json"))
-        agent.start()
-    except ImportError as e:
-        log.error(f"Agent core not found: {e}")
-        log.error("Make sure app/core/agent.py exists in the repo.")
-        _run_minimal_daemon(config)
+    # Start the main agent loop in a background thread
+    def _run_agent():
+        try:
+            from core.agent import Agent
+            agent = Agent(str(SENAPATI_HOME / "config.json"), shared_state=_shared_state)
+            agent.start()
+        except ImportError as e:
+            log.error(f"Agent core not found: {e}")
+            _run_minimal_daemon(config)
+
+    agent_thread = threading.Thread(target=_run_agent, daemon=True, name="agent")
+    agent_thread.start()
+    log.info("Agent started in background thread")
+
+    # ── Menu bar MUST run on main thread (AppKit / rumps requirement) ─────────
+    if IS_MACOS:
+        try:
+            from bridges.menubar import run_menubar
+            log.info("Menu bar starting on main thread...")
+            run_menubar(_shared_state)   # blocks; runs the NSApplication event loop
+        except ImportError as e:
+            log.warning(f"Menu bar unavailable: {e}")
+            agent_thread.join()        # keep process alive without menu bar
+    else:
+        agent_thread.join()            # Linux: just wait for agent
 
 
 def _run_minimal_daemon(config: dict):
@@ -213,6 +268,12 @@ Wake words: "Hey Senapati" or "Hey Buddy"
         log.debug("Debug mode enabled")
 
     log.info("Starting Senapati...")
+
+    # Single-instance check
+    if _is_already_running():
+        log.warning("Senapati is already running. Exiting.")
+        print("Senapati is already running. Use 'senapati --daemon' to check status.")
+        sys.exit(1)
 
     config = load_config()
     log.info(f"Loaded config — user: {config.get('user_name', 'unknown')}")

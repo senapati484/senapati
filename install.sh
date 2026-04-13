@@ -187,7 +187,24 @@ ok "Joe voice downloaded"
 hdr "Step 7 — Setting up wake word models"
 python3 -c "
 import openwakeword
+import shutil
+import os
+
+# Download models to package directory
 openwakeword.utils.download_models()
+
+# Copy ONNX models to ~/.senapati/models/
+pkg_models = os.path.join(os.path.dirname(openwakeword.__file__), 'resources', 'models')
+dest_dir = os.path.expanduser('~/.senapati/models')
+os.makedirs(dest_dir, exist_ok=True)
+
+for f in os.listdir(pkg_models):
+    src = os.path.join(pkg_models, f)
+    dst = os.path.join(dest_dir, f)
+    if os.path.isfile(src):
+        shutil.copy2(src, dst)
+        print(f'Copied: {f}')
+
 print('OK')
 "
 ok "Wake word models ready"

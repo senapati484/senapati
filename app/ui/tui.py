@@ -137,7 +137,7 @@ class SenapatiTUI(App if App else object):
         except:
             pass
     
-    def on_input_submit(self, event: Input.Submit) -> None:
+    def on_input_submit(self, event: Input.Submitted) -> None:
         """Handle input submit."""
         user_input = event.value
         

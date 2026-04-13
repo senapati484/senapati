@@ -36,26 +36,40 @@ AgentState = {
     "muted": "muted",
 }
 
+# Global shared state for menubar communication
+_shared_state: Dict[str, Any] = {
+    "state": "starting",
+    "muted": False,
+    "trusted_mode": False,
+}
+
 
 class Agent:
-    def __init__(self, config_path: str = CONFIG_PATH):
+    def __init__(self, config_path: str = CONFIG_PATH, shared_state: Dict[str, Any] = None):
         self.config_path = config_path
         self.config = self._load_config()
-        
+
         self.state = "idle"
         self.session_id = None
         self.session_start = None
         self.turn_count = 0
         self.session_history: List[Dict[str, str]] = []
-        
+
         self._action_log: List[Dict[str, Any]] = []
         self._pending_approval = None
         self._onboarding_done = self.config.get("onboarded", False)
-        
+
         self.muted = False
         self.trusted_mode = self.config.get("safety", {}).get("trusted_mode", False)
-        
+
         self._callbacks: Dict[str, callable] = {}
+
+        # Use provided shared_state or create a new one if not provided
+        if shared_state is not None:
+            self._shared_state = shared_state
+        else:
+            # Fallback to module-level shared state (for backward compatibility)
+            self._shared_state = _shared_state
     
     def _load_config(self) -> Dict[str, Any]:
         if os.path.exists(self.config_path):
@@ -76,22 +90,25 @@ class Agent:
     def start(self) -> None:
         """Start the agent daemon."""
         logger.info("Starting Senapati...")
-        
+
+        # Sync initial state to shared dict for menubar
+        self._shared_state["state"] = "idle"
+        self._shared_state["muted"] = self.muted
+        self._shared_state["trusted_mode"] = self.trusted_mode
+
         brain.reload_if_needed()
-        
+
         if not self.muted:
             voice_in.listen_for_wake(on_wake_detected=self._on_wake)
-        
+
         self.session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.session_start = time.time()
-        
+
         self._set_state("idle")
-        
-        # Start menu bar on macOS (shared state dict)
-        if platform.system() == "Darwin":
-            from app.bridges import menubar
-            menubar.start_menubar(self._agent_state)
-        
+
+        # NOTE: Menu bar is started by main.py on the main thread (macOS AppKit requirement).
+        # Do NOT start it here from the agent (background) thread.
+
         logger.info("Senapati started")
         
         # PROMPT_10: Check for proactive habit suggestions
@@ -103,11 +120,7 @@ class Agent:
     @property
     def _agent_state(self) -> Dict[str, Any]:
         """Shared state dict for menu bar."""
-        return {
-            "state": self.state,
-            "muted": self.muted,
-            "trusted_mode": self.trusted_mode,
-        }
+        return self._shared_state
     
     def _check_plugins(self) -> None:
         """PROMPT_13: Check and prompt for unconfigured plugins."""
@@ -700,9 +713,13 @@ class Agent:
     def _set_state(self, state: str) -> None:
         """Set agent state."""
         self.state = state
-        
+
+        # Sync to shared state for menubar
+        self._shared_state["state"] = state
+
         if state == "speaking":
             self.state = "idle"
+            self._shared_state["state"] = "idle"
     
     def approve_last_action(self) -> bool:
         """User approved - execute pending action."""
@@ -738,11 +755,13 @@ class Agent:
     def toggle_mute(self) -> None:
         """Toggle mute."""
         self.muted = not self.muted
+        self._shared_state["muted"] = self.muted
         self._set_state("idle" if self.muted else "listening")
     
     def toggle_trusted(self) -> None:
         """Toggle trusted mode."""
         self.trusted_mode = not self.trusted_mode
+        self._shared_state["trusted_mode"] = self.trusted_mode
         self.config.setdefault("safety", {})["trusted_mode"] = self.trusted_mode
         self._save_config()
     
