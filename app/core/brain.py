@@ -225,6 +225,19 @@ def embed(text: str) -> List[float]:
         return [0.0] * 768
 
 
+VOICE_STYLE_PROMPT = """
+Voice style rules (applies to everything in "speak"):
+- Never start with "Sure", "Of course", "Certainly", "Absolutely", "Great".
+- Be direct. State what you're doing, then do it.
+- Confident, not apologetic. Say "I'll do that" not "I can try to do that".
+- Warm but brief. Max 2 sentences in "speak" unless explaining something complex.
+- Use contractions. "I'll" not "I will". "You're" not "You are".
+- Address the user as "you" not by name unless they explicitly introduce themselves.
+- When confirming an action: just say what happened. "Done. Chrome is open." not "I've successfully opened the Chrome browser for you!"
+- When unsure: "I'm not sure about that — let me check" not "I apologize, I don't have information..."
+"""
+
+
 def think(
     user_input: str,
     system_prompt: str = "",
@@ -243,7 +256,7 @@ def think(
         FEW_SHOT_EXAMPLES,
     )
     
-    # PROMPT_1: Core system prompt (already built in agent.py)
+    # PROMPT_1: Core system prompt with voice style (already built in agent.py)
     full_prompt = system_prompt
     if not full_prompt:
         full_prompt = build_system_prompt(
@@ -251,6 +264,8 @@ def think(
             memory_context=memory_context,
             session_history=session_history,
         )
+    
+    full_prompt += "\n\n" + VOICE_STYLE_PROMPT
     
     # PROMPT_2: Tool routing with available tools
     plugin_tools = _get_plugin_tool_descriptions()

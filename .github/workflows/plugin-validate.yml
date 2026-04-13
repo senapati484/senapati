@@ -1,0 +1,63 @@
+name: Validate plugin
+on:
+  pull_request:
+    paths: ['plugins/**']
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Validate plugin structure
+        run: |
+          pip install fastmcp -q
+          
+          python3 << 'PYEOF'
+          import sys
+          import os
+          import ast
+          
+          plugin_dir = "plugins"
+          
+          if not os.path.isdir(plugin_dir):
+              print("No plugins directory found")
+              sys.exit(0)
+          
+          errors = []
+          
+          for filename in os.listdir(plugin_dir):
+              if not filename.endswith("_mcp.py"):
+                  continue
+              
+              plugin_path = os.path.join(plugin_dir, filename)
+              
+              with open(plugin_path) as f:
+                  source = f.read()
+              
+              # Check FastMCP import exists
+              if "FastMCP" not in source and "MCP" not in source:
+                  errors.append(f"{filename}: Must import FastMCP or MCP")
+              
+              # Check for dangerous patterns
+              dangerous = ["os.system(", "subprocess.call(", "eval(", "exec("]
+              for pattern in dangerous:
+                  if pattern in source:
+                      errors.append(f"{filename}: Potentially dangerous pattern: {pattern}")
+              
+              # Try parse AST
+              try:
+                  tree = ast.parse(source)
+              except SyntaxError as e:
+                  errors.append(f"{filename}: Syntax error - {e}")
+          
+          if errors:
+              print("=== VALIDATION FAILED ===")
+              for e in errors:
+                  print(f"  - {e}")
+              sys.exit(1)
+          else:
+              print("=== VALIDATION PASSED ===")
+              print(f"Checked {len([f for f in os.listdir(plugin_dir) if f.endswith('_mcp.py')])} plugins")
+          PYEOF

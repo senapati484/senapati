@@ -1,0 +1,35 @@
+name: Model freshness check
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # every Monday 9am
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Check for newer models
+        run: |
+          pip install huggingface_hub -q
+          
+          python3 << 'PYEOF'
+          from huggingface_hub import list_models, list_datasets
+          
+          # Check for Qwen3 models
+          models = list(list_models(search="qwen3", limit=10))
+          
+          mlx_models = [m for m in models if "mlx" in m.id.lower()]
+          
+          print("=== Found Qwen3 models ===")
+          for m in mlx_models[:5]:
+            print(f"  {m.id}")
+          
+          # Check for newer nomic-embed
+          embeds = list(list_models(search="nomic-embed", limit=5))
+          
+          print("\n=== Found embedding models ===")
+          for m in embeds[:3]:
+            print(f"  {m.id}")
+          PYEOF

@@ -51,7 +51,7 @@ def get_system_stats() -> Dict[str, Any]:
         battery = psutil.sensors_battery()
         if battery:
             stats["battery_percent"] = battery.percent
-            stats["battery_charging"] = battery.is_plugged
+            stats["battery_charging"] = getattr(battery, 'power_plugged', False)
         
         return stats
     

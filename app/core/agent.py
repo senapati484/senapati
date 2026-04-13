@@ -266,6 +266,12 @@ class Agent:
         if self.muted:
             return
         
+        # Barge-in: stop any ongoing speech
+        if self.state == "speaking":
+            voice_out.request_barge_in()
+            import time
+            time.sleep(0.1)
+        
         self._set_state("listening")
         
         # PROMPT_0: Immediate wake acknowledgment (no LLM call - synchronous)

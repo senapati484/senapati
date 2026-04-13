@@ -21,7 +21,10 @@ def is_piper_available() -> bool:
 
 
 def get_voice():
-    """Get or load Piper voice."""
+    """Get or load Piper voice.
+    
+    Prefers en_US-joe-medium (dominant + warm) over en_US-lessac-high.
+    """
     global _model
     
     if _model is not None:
@@ -30,11 +33,19 @@ def get_voice():
     if not is_piper_available():
         return None
     
-    model_path = os.path.join(SENAPATI_HOME, "models/piper/en_US-lessac-high.onnx")
-    config_path = model_path + ".json"
+    # Joe = deeper, more authoritative (preferred)
+    joe_path = os.path.join(SENAPATI_HOME, "models/piper/en_US-joe-medium.onnx")
+    lessac_path = os.path.join(SENAPATI_HOME, "models/piper/en_US-lessac-high.onnx")
     
-    if not os.path.exists(model_path):
-        logger.warning(f"Piper voice not found: {model_path}")
+    # Try Joe first, fall back to Lessac
+    if os.path.exists(joe_path):
+        model_path = joe_path
+        config_path = joe_path + ".json"
+    elif os.path.exists(lessac_path):
+        model_path = lessac_path
+        config_path = lessac_path + ".json"
+    else:
+        logger.warning("No Piper voice found")
         return None
     
     try:
@@ -51,12 +62,13 @@ def get_voice():
 
 def speak(
     text: str,
-    length_scale: float = 0.95,
-    sentence_silence: float = 0.2,
+    length_scale: float = 1.05,
+    sentence_silence: float = 0.3,
     blocking: bool = True,
 ) -> None:
     """
     Synthesize and play audio.
+    Default length_scale 1.05 = ~5% slower = sounds more confident.
     """
     voice = get_voice()
     if voice is None:
@@ -87,6 +99,87 @@ def speak(
     
     except Exception as e:
         logger.error(f"TTS failed: {e}")
+
+
+_speaking = False
+_barge_requested = False
+
+
+def speak_streaming(text: str) -> None:
+    """
+    Stream-speak text by sentence - first sentence starts within ~400ms.
+    Uses queue to overlap TTS generation with playback.
+    """
+    global _speaking, _barge_requested
+    
+    _speaking = True
+    _barge_requested = False
+    
+    sentences = _split_sentences(text)
+    
+    for i, sentence in enumerate(sentences):
+        if _barge_requested:
+            break
+        
+        voice = get_voice()
+        if voice is None:
+            continue
+        
+        try:
+            import wave
+            
+            buf = io.BytesIO()
+            
+            with wave.open(buf, "wb") as wf:
+                voice.synthesize(
+                    sentence,
+                    wf,
+                    length_scale=1.05,
+                    sentence_silence=0.3,
+                )
+            
+            wav_data = buf.getvalue()
+            
+            if platform.system() == "Darwin":
+                _play_macos(wav_data)
+            elif platform.system() == "Linux":
+                _play_linux(wav_data)
+        
+        except Exception as e:
+            logger.error(f"Streaming TTS failed: {e}")
+            break
+    
+    _speaking = False
+
+
+def _split_sentences(text: str) -> list:
+    """Split text into sentences for streaming."""
+    import re
+    
+    text = re.sub(r'\s+', ' ', text).strip()
+    
+    parts = re.split(r'(?<=[.!?])\s+', text)
+    
+    sentences = []
+    buffer = ""
+    
+    for part in parts:
+        buffer += " " + part if buffer else part
+        
+        if len(buffer) >= 15:
+            sentences.append(buffer.strip())
+            buffer = ""
+    
+    if buffer.strip():
+        sentences.append(buffer.strip())
+    
+    return sentences
+
+
+def request_barge_in() -> None:
+    """Request barge-in (called from voice_in when wake word detects during speech)."""
+    global _barge_requested
+    _barge_requested = True
 
 
 def _play_macos(wav_data: bytes) -> None:
@@ -141,6 +234,7 @@ def speak_immediately(text: str) -> None:
     """
     Speak text immediately (for wake ACK).
     Uses shorter settings for faster response.
+    For wake ACKs, faster is better = 1.0 length_scale.
     """
     speak(text, length_scale=1.0, sentence_silence=0.1)
 

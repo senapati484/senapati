@@ -11,6 +11,11 @@ from datetime import datetime
 
 SENAPATI_HOME = os.path.expanduser("~/.senapati")
 
+# Create required directories
+os.makedirs(SENAPATI_HOME, exist_ok=True)
+os.makedirs(f"{SENAPATI_HOME}/logs", exist_ok=True)
+os.makedirs(f"{SENAPATI_HOME}/cache", exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(name)s %(levelname)s %(message)s",
@@ -69,6 +74,12 @@ def parse_args():
         help="Show version",
     )
     
+    parser.add_argument(
+        "--calibrate",
+        action="store_true",
+        help="Calibrate wake word sensitivity for environment",
+    )
+    
     return parser.parse_args()
 
 
@@ -79,6 +90,9 @@ def main():
     if args.version:
         print("Senapati v0.1.0")
         return 0
+    
+    if args.calibrate:
+        return run_calibrate()
     
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
@@ -187,6 +201,21 @@ def run_mini():
     
     except Exception as e:
         logger.error(f"Mini mode failed: {e}")
+        return 1
+
+
+def run_calibrate():
+    """Calibrate wake word sensitivity."""
+    logger.info("Running noise calibration...")
+    
+    try:
+        from app.core import calibrate
+        
+        calibrate.calibrate_noise_floor()
+        return 0
+    
+    except Exception as e:
+        logger.error(f"Calibration failed: {e}")
         return 1
 
 
