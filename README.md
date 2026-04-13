@@ -9,7 +9,7 @@ Local-first · Voice-first · Always running · Full system access
 ## Quick Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/your-username/senapati/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/senapati484/senapati/main/install.sh | bash
 ```
 
 After install:
