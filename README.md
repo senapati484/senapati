@@ -47,7 +47,7 @@ After install:
 | Layer | Technology |
 |-------|------------|
 | LLM | MLX-LM (Apple Silicon) / llama.cpp |
-| Model | Qwen3-2.5B Q4 |
+| Model | Qwen3-1.7B |
 | STT | faster-whisper small |
 | TTS | Piper |
 | UI | Textual |
