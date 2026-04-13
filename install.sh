@@ -8,7 +8,7 @@ set -euo pipefail
 
 # ── Constants ────────────────────────────────────────────────
 SENAPATI_HOME="$HOME/.senapati"
-SENAPATI_REPO="https://github.com/your-username/senapati"
+SENAPATI_REPO="https://github.com/senapati484/senapati"
 MODEL_MAIN="mlx-community/Qwen3-1.7B-4bit"
 MODEL_DRAFT="mlx-community/Qwen3-0.6B-4bit"
 MODEL_EMBED="mlx-community/nomic-embed-text-v1.5"
