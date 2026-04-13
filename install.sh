@@ -271,7 +271,7 @@ ok "Wake word models ready"
 
 # ═══════════════════════════════════════════════════════════
 # STEP 8 — Clone Senapati app source
-# ═══════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════
 hdr "Step 8 — Cloning Senapati source"
 
 if [ -d "$SENAPATI_HOME/app/.git" ]; then
@@ -287,6 +287,13 @@ else
     git clone "$SENAPATI_REPO" "$SENAPATI_HOME/app" --depth 1 -q
     ok "Cloned from GitHub"
   fi
+fi
+
+# Copy requirements.txt to senapati home
+if [ -f "$SENAPATI_HOME/app/requirements.txt" ]; then
+  cp "$SENAPATI_HOME/app/requirements.txt" "$SENAPATI_HOME/requirements.txt"
+  ok "requirements.txt copied"
+fi
 fi
 
 # ═══════════════════════════════════════════════════════════

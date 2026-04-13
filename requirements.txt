@@ -1,66 +1,49 @@
-#!/usr/bin/env python3
-"""
-Senapati - Requirements
-Zero brew dependencies - pure pip only
-"""
+# Senapati ✨ — Python dependencies
+# All pip-installable. No brew. No apt. No system deps.
 
-# =====================
-# Core (required)
-# =====================
+# ── LLM Runtime ──────────────────────────────────────────────
+mlx-lm
 
-# LLM Runtime
-mlx-lm                      # Apple Silicon GPU (auto-fallback: llama-cpp-python on Linux)
-faster-whisper             # Speech-to-text
+# ── Voice Stack ───────────────────────────────────────────────
+faster-whisper
+openwakeword
+piper-tts
 
-# Voice
-openwakeword               # Wake word detection
-piper-tts                  # Text-to-speech
+# ── Memory ────────────────────────────────────────────────────
+sqlite-vec
+sentence-transformers
 
-# UI & System
-textual                    # Terminal UI
-watchdog                   # File system watching
-psutil                     # System stats
-rumps                      # macOS menu bar
+# ── Terminal UI ─────────────────────────────────────────────
+textual
 
-# =====================
-# Storage
-# =====================
-sqlite-vec                  # Vector search (SQLite extension)
+# ── MCP Tool Protocol ─────────────────────────────────────────
+fastmcp
 
-# =====================
-# Vision/OCR (platform-specific)
-# =====================
-Pillow                      # Screenshots
-pytesseract                 # OCR fallback
-ocrmac                      # macOS OCR (Apple Vision, built-in)
-easyocr                     # Linux OCR (PyTorch-based)
+# ── OCR ───────────────────────────────────────────────────────
+ocrmac
+pyobjc-framework-Vision
+pyobjc-framework-Cocoa
 
-# =====================
-# Notifications (platform-specific)
-# =====================
-macos-notifications         # macOS (pure Python)
-notify-py                   # Linux
+# ── Notifications ─────────────────────────────────────────────
+macos-notifications
 
-# =====================
-# Audio (Linux only)
-# =====================
-sounddevice                 # Linux audio playback
-soundfile                   # Linux audio file handling
+# ── Menu Bar (macOS only) ─────────────────────────────────────
+rumps
 
-# =====================
-# Calendar
-# =====================
-vobject                    # Read .ics files
+# ── System Utilities ──────────────────────────────────────────
+psutil
+watchdog
+Pillow
+huggingface_hub
 
-# =====================
-# Plugins (optional)
-# =====================
-python-telegram-bot        # Telegram
-spotipy                    # Spotify
-PyGithub                   # GitHub
+# ── Calendar ──────────────────────────────────────────────────
+vobject
 
-# =====================
-# Development
-# =====================
-pytest
-pytest-asyncio
+# ── Audio Playback (Linux) ────────────────────────────────────
+sounddevice
+soundfile
+
+# ── Plugins (optional) ────────────────────────────────────────
+python-telegram-bot
+PyGithub
+spotipy
