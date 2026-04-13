@@ -219,16 +219,12 @@ snapshot_download(
 print("✓ Draft model downloaded")
 PYEOF
 
-info "Downloading nomic-embed text embedding model..."
+info "Installing embedding model (all-MiniLM-L6-v2)..."
+pip install sentence-transformers -q
 python3 - << 'PYEOF'
-from huggingface_hub import snapshot_download
-import os
-snapshot_download(
-    repo_id="mlx-community/nomic-embed-text-v1.5",
-    local_dir=os.path.expanduser("~/.senapati/models/nomic-embed-mlx"),
-    ignore_patterns=["*.md", "*.txt"]
-)
-print("✓ Embedding model downloaded")
+from sentence_transformers import SentenceTransformer
+model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+print("✓ Embedding model ready")
 PYEOF
 
 ok "All AI models downloaded"
@@ -365,7 +361,7 @@ cat > "$SENAPATI_HOME/config.json" << 'CONFJSON'
   "model": {
     "main": "qwen3-1.7b-mlx",
     "draft": "qwen3-0.6b-mlx",
-    "embed": "nomic-embed-mlx",
+    "embed": "sentence-transformers/all-MiniLM-L6-v2",
     "runtime": "mlx",
     "max_tokens": 300,
     "temperature": 0.1

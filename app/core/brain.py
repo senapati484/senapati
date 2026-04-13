@@ -197,32 +197,26 @@ def generate_step(prompt: str, max_tokens: int = 256) -> str:
         yield ""
 
 
+_embed_model = None
+
+
 def embed(text: str) -> List[float]:
     """
-    Generate embeddings for text using the embedding model.
+    Generate embeddings using sentence-transformers.
     """
-    embed_model_path = os.path.join(SENAPATI_HOME, "models/nomic-embed-mlx")
-    
-    if not os.path.exists(embed_model_path):
-        logger.warning(f"Embed model not found at {embed_model_path}")
-        return [0.0] * 768
+    global _embed_model
     
     try:
-        if is_mlx_available():
-            from mlx_lm import load
-            
-            model, tokenizer = load(embed_model_path)
-            
-            if hasattr(tokenizer, 'encode'):
-                ids = tokenizer.encode(text)
-            else:
-                ids = tokenizer(text)
-            
-            return ids.tolist() if hasattr(ids, 'tolist') else list(ids)
+        from sentence_transformers import SentenceTransformer
+        
+        if _embed_model is None:
+            _embed_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+        
+        return _embed_model.encode(text).tolist()
     
     except Exception as e:
         logger.error(f"Embedding failed: {e}")
-        return [0.0] * 768
+        return [0.0] * 384
 
 
 VOICE_STYLE_PROMPT = """
